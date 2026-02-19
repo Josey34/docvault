@@ -18,6 +18,10 @@ func RunMigrations(db *sql.DB) error {
 		return fmt.Errorf("failed to create processing results table: %w", err)
 	}
 
+	if err := CreateDocumentChunksTable(db); err != nil {
+		return fmt.Errorf("failed to create document chunks table: %w", err)
+	}
+
 	return nil
 }
 
@@ -74,5 +78,24 @@ func CreateProcessingResultsTable(db *sql.DB) error {
 	}
 
 	fmt.Println("Table 'processing_results' created successfully")
+	return nil
+}
+
+func CreateDocumentChunksTable(db *sql.DB) error {
+	createDocumentChunksQuery := ` CREATE TABLE IF NOT EXISTS document_chunks (
+            id TEXT PRIMARY KEY,
+            document_id TEXT NOT NULL,
+            chunk_number INTEGER NOT NULL,
+						chunk_text TEXT NOT NULL,
+            created_at DATETIME NOT NULL
+    );
+	`
+
+	_, err := db.Exec(createDocumentChunksQuery)
+	if err != nil {
+		return fmt.Errorf("failed to create document_chunks table: %w", err)
+	}
+
+	fmt.Println("Table 'document_chunks' created successfully")
 	return nil
 }

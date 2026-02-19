@@ -151,7 +151,7 @@ docvault/
 │
 ├── database/
 │   ├── sqlite.go               # Open connection
-│   └── migrations.go           # CREATE TABLE (documents table + processing_results table for GoFlow)
+│   └── migrations.go           # CREATE TABLE (documents, users, processing_results, document_chunks)
 │
 ├── worker/
 │   ├── notification.go         # SQS consumer goroutine
@@ -292,8 +292,9 @@ func main() {
 **Important for continuity:** In `database/migrations.go`, also create the `users` table and `processing_results` table now — GoAuth and GoFlow will use them later:
 ```sql
 CREATE TABLE IF NOT EXISTS documents (...);
-CREATE TABLE IF NOT EXISTS users (...);           -- GoAuth will use this
+CREATE TABLE IF NOT EXISTS users (...);              -- GoAuth will use this
 CREATE TABLE IF NOT EXISTS processing_results (...); -- GoFlow will write here
+CREATE TABLE IF NOT EXISTS document_chunks (...);    -- GoFlow will store text chunks here
 ```
 
 **Test yourself:**
