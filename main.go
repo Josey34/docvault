@@ -28,5 +28,7 @@ func main() {
 		})
 	})
 
+	r.POST("/api/documents/upload", f.DocumentHandler.Upload)
+
 	r.Run(":" + cfg.Port)
 }
