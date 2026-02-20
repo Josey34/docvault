@@ -31,6 +31,7 @@ func main() {
 	r.POST("/api/documents/upload", f.DocumentHandler.Upload)
 	r.GET("/api/documents", f.DocumentHandler.List)
 	r.GET("/api/documents/:id", f.DocumentHandler.GetMetadata)
+	r.GET("/api/documents/:id/download", f.DocumentHandler.Download)
 
 	r.Run(":" + cfg.Port)
 }

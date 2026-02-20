@@ -3,6 +3,8 @@ package handler
 import (
 	"docvault/dto"
 	"docvault/usecase"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -73,4 +75,26 @@ func (h *DocumentHandler) GetMetadata(c *gin.Context) {
 	response := dto.FromEntity(doc)
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *DocumentHandler) Download(c *gin.Context) {
+	id := c.Param("id")
+
+	doc, err := h.usecase.GetMetadata(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	fileStream, err := h.usecase.Download(c.Request.Context(), doc.FileName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer fileStream.Close()
+
+	c.Header("Content-Type", doc.ContentType)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", doc.FileName))
+	c.Status(http.StatusOK)
+	io.Copy(c.Writer, fileStream)
 }

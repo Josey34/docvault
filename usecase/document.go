@@ -60,3 +60,12 @@ func (u *DocumentUsecase) GetMetadata(ctx context.Context, id string) (*entity.D
 
 	return doc, nil
 }
+
+func (u *DocumentUsecase) Download(ctx context.Context, filename string) (io.ReadCloser, error) {
+	object, err := u.storage.Download(ctx, filename)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to download from storage %w", err)
+	}
+
+	return object, nil
+}
