@@ -44,5 +44,33 @@ func (h *DocumentHandler) Upload(c *gin.Context) {
 
 	response := dto.FromEntity(doc)
 	c.JSON(http.StatusCreated, response)
+}
 
+func (h *DocumentHandler) List(c *gin.Context) {
+	docs, err := h.usecase.List(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var responses []*dto.DocumentResponse
+	for _, doc := range docs {
+		responses = append(responses, dto.FromEntity(doc))
+	}
+
+	c.JSON(http.StatusOK, responses)
+}
+
+func (h *DocumentHandler) GetMetadata(c *gin.Context) {
+	id := c.Param("id")
+
+	doc, err := h.usecase.GetMetadata(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.FromEntity(doc)
+
+	c.JSON(http.StatusOK, response)
 }

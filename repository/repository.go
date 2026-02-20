@@ -7,4 +7,6 @@ import (
 
 type DocumentRepository interface {
 	Save(ctx context.Context, doc *entity.Document) error
+	FindById(ctx context.Context, id string) (*entity.Document, error)
+	FindAll(ctx context.Context) ([]*entity.Document, error)
 }

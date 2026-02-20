@@ -42,3 +42,21 @@ func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize 
 
 	return document, nil
 }
+
+func (u *DocumentUsecase) List(ctx context.Context) ([]*entity.Document, error) {
+	doc, err := u.repo.FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to list items from documents %w", err)
+	}
+
+	return doc, nil
+}
+
+func (u *DocumentUsecase) GetMetadata(ctx context.Context, id string) (*entity.Document, error) {
+	doc, err := u.repo.FindById(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to find item id %w", err)
+	}
+
+	return doc, nil
+}

@@ -29,6 +29,8 @@ func main() {
 	})
 
 	r.POST("/api/documents/upload", f.DocumentHandler.Upload)
+	r.GET("/api/documents", f.DocumentHandler.List)
+	r.GET("/api/documents/:id", f.DocumentHandler.GetMetadata)
 
 	r.Run(":" + cfg.Port)
 }

@@ -30,3 +30,12 @@ func (m *MinIOStorage) Upload(ctx context.Context, filename string, fileSize int
 
 	return nil
 }
+
+func (m *MinIOStorage) Download(ctx context.Context, filename string) (io.ReadCloser, error) {
+	object, err := m.client.GetObject(ctx, m.bucketName, filename, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("Error initialize minio download %w", err)
+	}
+
+	return object, nil
+}
