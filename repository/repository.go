@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"docvault/entity"
+	"time"
 )
 
 type DocumentRepository interface {
@@ -10,4 +11,5 @@ type DocumentRepository interface {
 	FindById(ctx context.Context, id string) (*entity.Document, error)
 	FindAll(ctx context.Context) ([]*entity.Document, error)
 	Delete(ctx context.Context, id string) error
+	FindExpired(ctx context.Context, now time.Time) ([]*entity.Document, error)
 }

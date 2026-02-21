@@ -23,6 +23,7 @@ type Factory struct {
 	DB                 *sql.DB
 	DocumentHandler    *handler.DocumentHandler
 	NotificationWorker *worker.NotificationWorker
+	SchedulerWorker    *worker.SchedulerWorker
 }
 
 func New(cfg *config.Config) (*Factory, error) {
@@ -69,9 +70,12 @@ func New(cfg *config.Config) (*Factory, error) {
 
 	notificationWorker := worker.NewNotificationWorker(queueService)
 
+	schedulerWorker := worker.NewSchedulerWorker(docUsecase)
+
 	return &Factory{
 		DB:                 db,
 		DocumentHandler:    docHandler,
 		NotificationWorker: notificationWorker,
+		SchedulerWorker:    schedulerWorker,
 	}, nil
 }

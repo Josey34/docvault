@@ -23,8 +23,10 @@ func NewDocumentUsecase(repo repository.DocumentRepository, storage service.Stor
 	return &DocumentUsecase{repo: repo, storage: storage, queue: queue}
 }
 
-func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize int64, contentType string, file io.Reader) (*entity.Document, error) {
+func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize int64, contentType string, file io.Reader, expiresIn int) (*entity.Document, error) {
 	documentID := uuid.New().String()
+	now := time.Now()
+	expiresAt := now.Add(time.Duration(expiresIn) * time.Second)
 
 	if err := u.storage.Upload(ctx, filename, fileSize, contentType, file); err != nil {
 		return nil, fmt.Errorf("Failed to upload to storage %w", err)
@@ -36,7 +38,7 @@ func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize 
 		FileSize:    fileSize,
 		ContentType: contentType,
 		CreatedAt:   time.Now(),
-		ExpiresAt:   nil,
+		ExpiresAt:   &expiresAt,
 	}
 	if err := u.repo.Save(ctx, document); err != nil {
 		return nil, fmt.Errorf("Failed to save to repository documents %w", err)
@@ -116,6 +118,22 @@ func (u *DocumentUsecase) Delete(ctx context.Context, id string) error {
 
 	if err := u.queue.Publish(ctx, string(eventJSON)); err != nil {
 		return fmt.Errorf("Failed to publish delete event %w", err)
+	}
+
+	return nil
+}
+
+func (u *DocumentUsecase) DeleteExpiredDocuments(ctx context.Context) error {
+	now := time.Now()
+	expiredDocs, err := u.repo.FindExpired(ctx, now)
+	if err != nil {
+		return fmt.Errorf("Failed to find expired documents %w", err)
+	}
+
+	for _, doc := range expiredDocs {
+		if err := u.Delete(ctx, doc.ID); err != nil {
+			fmt.Printf("Failed to delete expired document %s: %v\n", doc.ID, err)
+		}
 	}
 
 	return nil

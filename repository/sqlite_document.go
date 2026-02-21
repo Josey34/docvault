@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"docvault/entity"
 	"fmt"
+	"time"
 )
 
 type SQLiteDocumentRepository struct {
@@ -75,4 +76,26 @@ func (r *SQLiteDocumentRepository) Delete(ctx context.Context, id string) error 
 	}
 
 	return nil
+}
+
+func (r *SQLiteDocumentRepository) FindExpired(ctx context.Context, now time.Time) ([]*entity.Document, error) {
+	findExpiredQuery := `SELECT id, file_name, file_size, content_type, created_at, expires_at FROM documents WHERE expires_at < ?`
+
+	docs, err := r.db.QueryContext(ctx, findExpiredQuery, now)
+	if err != nil {
+		return nil, fmt.Errorf("error finding expired documents %w", err)
+	}
+
+	var documents []*entity.Document
+	for docs.Next() {
+		doc := &entity.Document{}
+		err := docs.Scan(&doc.ID, &doc.FileName, &doc.FileSize, &doc.ContentType, &doc.CreatedAt, &doc.ExpiresAt)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning document %w", err)
+		}
+
+		documents = append(documents, doc)
+	}
+
+	return documents, nil
 }

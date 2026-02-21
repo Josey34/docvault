@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +21,9 @@ func NewDocumentHandler(usecase *usecase.DocumentUsecase) *DocumentHandler {
 
 func (h *DocumentHandler) Upload(c *gin.Context) {
 	file, err := c.FormFile("file")
+	expiresInStr := c.PostForm("expires_in")
+	expiresIn, _ := strconv.Atoi(expiresInStr)
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get file from request"})
 		return
@@ -38,6 +42,7 @@ func (h *DocumentHandler) Upload(c *gin.Context) {
 		file.Size,
 		file.Header.Get("Content-Type"),
 		fileReader,
+		expiresIn,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -36,6 +36,7 @@ func main() {
 	r.DELETE("/api/documents/:id", f.DocumentHandler.Delete)
 
 	go f.NotificationWorker.Start(context.Background())
+	go f.SchedulerWorker.Start(context.Background())
 
 	r.Run(":" + cfg.Port)
 }
