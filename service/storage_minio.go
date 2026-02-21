@@ -39,3 +39,11 @@ func (m *MinIOStorage) Download(ctx context.Context, filename string) (io.ReadCl
 
 	return object, nil
 }
+
+func (m *MinIOStorage) Delete(ctx context.Context, filename string) error {
+	if err := m.client.RemoveObject(ctx, m.bucketName, filename, minio.RemoveObjectOptions{}); err != nil {
+		return fmt.Errorf("Error deleting object from minio %w", err)
+	}
+
+	return nil
+}

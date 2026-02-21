@@ -32,6 +32,7 @@ func main() {
 	r.GET("/api/documents", f.DocumentHandler.List)
 	r.GET("/api/documents/:id", f.DocumentHandler.GetMetadata)
 	r.GET("/api/documents/:id/download", f.DocumentHandler.Download)
+	r.DELETE("/api/documents/:id", f.DocumentHandler.Delete)
 
 	r.Run(":" + cfg.Port)
 }

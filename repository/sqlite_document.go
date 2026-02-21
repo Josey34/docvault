@@ -65,3 +65,14 @@ func (r *SQLiteDocumentRepository) FindAll(ctx context.Context) ([]*entity.Docum
 
 	return documents, nil
 }
+
+func (r *SQLiteDocumentRepository) Delete(ctx context.Context, id string) error {
+	deleteQuery := `DELETE FROM documents where id=?`
+
+	_, err := r.db.ExecContext(ctx, deleteQuery, id)
+	if err != nil {
+		return fmt.Errorf("error deleting document %w", err)
+	}
+
+	return nil
+}

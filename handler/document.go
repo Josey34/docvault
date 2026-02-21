@@ -98,3 +98,14 @@ func (h *DocumentHandler) Download(c *gin.Context) {
 	c.Status(http.StatusOK)
 	io.Copy(c.Writer, fileStream)
 }
+
+func (h *DocumentHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := h.usecase.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "document deleted"})
+}

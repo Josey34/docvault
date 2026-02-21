@@ -69,3 +69,20 @@ func (u *DocumentUsecase) Download(ctx context.Context, filename string) (io.Rea
 
 	return object, nil
 }
+
+func (u *DocumentUsecase) Delete(ctx context.Context, id string) error {
+	doc, err := u.repo.FindById(ctx, id)
+	if err != nil {
+		return fmt.Errorf("Failed to find item id %w", err)
+	}
+
+	if err := u.storage.Delete(ctx, doc.FileName); err != nil {
+		return fmt.Errorf("Failed to delete from storage %w", err)
+	}
+
+	if err := u.repo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("Failed to delete from repo %w", err)
+	}
+
+	return nil
+}
