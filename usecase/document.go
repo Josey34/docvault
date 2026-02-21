@@ -5,6 +5,7 @@ import (
 	"docvault/entity"
 	"docvault/repository"
 	"docvault/service"
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -15,10 +16,11 @@ import (
 type DocumentUsecase struct {
 	repo    repository.DocumentRepository
 	storage service.StorageService
+	queue   service.QueueService
 }
 
-func NewDocumentUsecase(repo repository.DocumentRepository, storage service.StorageService) *DocumentUsecase {
-	return &DocumentUsecase{repo: repo, storage: storage}
+func NewDocumentUsecase(repo repository.DocumentRepository, storage service.StorageService, queue service.QueueService) *DocumentUsecase {
+	return &DocumentUsecase{repo: repo, storage: storage, queue: queue}
 }
 
 func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize int64, contentType string, file io.Reader) (*entity.Document, error) {
@@ -38,6 +40,22 @@ func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize 
 	}
 	if err := u.repo.Save(ctx, document); err != nil {
 		return nil, fmt.Errorf("Failed to save to repository documents %w", err)
+	}
+
+	event := map[string]interface{}{
+		"type":        "file.uploaded",
+		"document_id": documentID,
+		"filename":    filename,
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal event %w", err)
+	}
+
+	if err := u.queue.Publish(ctx, string(eventJSON)); err != nil {
+		return nil, fmt.Errorf("Failed to publish to queue %w", err)
 	}
 
 	return document, nil
@@ -82,6 +100,22 @@ func (u *DocumentUsecase) Delete(ctx context.Context, id string) error {
 
 	if err := u.repo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("Failed to delete from repo %w", err)
+	}
+
+	event := map[string]interface{}{
+		"type":        "file.deleted",
+		"document_id": id,
+		"filename":    doc.FileName,
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal event %w", err)
+	}
+
+	if err := u.queue.Publish(ctx, string(eventJSON)); err != nil {
+		return fmt.Errorf("Failed to publish delete event %w", err)
 	}
 
 	return nil

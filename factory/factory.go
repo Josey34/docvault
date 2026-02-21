@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"database/sql"
 	"docvault/config"
 	"docvault/database"
@@ -10,6 +11,9 @@ import (
 	"docvault/usecase"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -37,11 +41,27 @@ func New(cfg *config.Config) (*Factory, error) {
 		return nil, fmt.Errorf("Error initializing minio client factory %w", err)
 	}
 
+	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	sqsClient := sqs.NewFromConfig(awsCfg)
+
+	_, err = sqsClient.CreateQueue(context.Background(), &sqs.CreateQueueInput{
+		QueueName: aws.String("docvault-events"),
+	})
+	if err != nil {
+		fmt.Printf("Queue creation warning: %v (might already exist)\n", err)
+	}
+
+	queueService := service.NewSQSQueue(sqsClient, cfg.SqsQueueUrl)
+
 	docRepo := repository.NewSQLiteDocumentRepository(db)
 
 	storageService := service.NewMinIOStorage(minioClient, cfg.MinioBucketName)
 
-	docUsecase := usecase.NewDocumentUsecase(docRepo, storageService)
+	docUsecase := usecase.NewDocumentUsecase(docRepo, storageService, queueService)
 
 	docHandler := handler.NewDocumentHandler(docUsecase)
 
