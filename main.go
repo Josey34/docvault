@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"docvault/config"
 	"docvault/factory"
 	"log"
@@ -33,6 +34,8 @@ func main() {
 	r.GET("/api/documents/:id", f.DocumentHandler.GetMetadata)
 	r.GET("/api/documents/:id/download", f.DocumentHandler.Download)
 	r.DELETE("/api/documents/:id", f.DocumentHandler.Delete)
+
+	go f.NotificationWorker.Start(context.Background())
 
 	r.Run(":" + cfg.Port)
 }

@@ -9,6 +9,7 @@ import (
 	"docvault/repository"
 	"docvault/service"
 	"docvault/usecase"
+	"docvault/worker"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -19,8 +20,9 @@ import (
 )
 
 type Factory struct {
-	DB              *sql.DB
-	DocumentHandler *handler.DocumentHandler
+	DB                 *sql.DB
+	DocumentHandler    *handler.DocumentHandler
+	NotificationWorker *worker.NotificationWorker
 }
 
 func New(cfg *config.Config) (*Factory, error) {
@@ -65,8 +67,11 @@ func New(cfg *config.Config) (*Factory, error) {
 
 	docHandler := handler.NewDocumentHandler(docUsecase)
 
+	notificationWorker := worker.NewNotificationWorker(queueService)
+
 	return &Factory{
-		DB:              db,
-		DocumentHandler: docHandler,
+		DB:                 db,
+		DocumentHandler:    docHandler,
+		NotificationWorker: notificationWorker,
 	}, nil
 }
