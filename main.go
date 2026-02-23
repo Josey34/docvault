@@ -4,6 +4,7 @@ import (
 	"context"
 	"docvault/config"
 	"docvault/factory"
+	"docvault/middleware"
 	"log"
 	"net/http"
 	"os"
@@ -32,6 +33,8 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	r.Use(middleware.LoggingMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		if err := f.DB.Ping(); err != nil {
