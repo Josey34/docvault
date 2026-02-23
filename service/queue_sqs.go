@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 type SQSQueue struct {
@@ -65,4 +66,12 @@ func (s *SQSQueue) DeleteMessage(ctx context.Context, receiptHandle string) erro
 	}
 
 	return nil
+}
+
+func (s *SQSQueue) Health(ctx context.Context) error {
+	_, err := s.client.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
+		QueueUrl:       &s.queueURL,
+		AttributeNames: []types.QueueAttributeName{"QueueArn"},
+	})
+	return err
 }

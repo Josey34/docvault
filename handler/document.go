@@ -114,3 +114,8 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "document deleted"})
 }
+
+func (h *DocumentHandler) Health(c *gin.Context) {
+	status := h.usecase.Health(c.Request.Context())
+	c.JSON(200, gin.H{"status": "healthy", "services": status})
+}

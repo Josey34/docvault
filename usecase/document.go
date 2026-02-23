@@ -138,3 +138,27 @@ func (u *DocumentUsecase) DeleteExpiredDocuments(ctx context.Context) error {
 
 	return nil
 }
+
+func (u *DocumentUsecase) Health(ctx context.Context) map[string]string {
+	status := make(map[string]string)
+
+	if err := u.repo.Ping(ctx); err != nil {
+		status["database"] = "error: " + err.Error()
+	} else {
+		status["database"] = "ok"
+	}
+
+	if err := u.storage.Health(ctx); err != nil {
+		status["storage"] = "error: " + err.Error()
+	} else {
+		status["storage"] = "ok"
+	}
+
+	if err := u.queue.Health(ctx); err != nil {
+		status["queue"] = "error: " + err.Error()
+	} else {
+		status["queue"] = "ok"
+	}
+
+	return status
+}

@@ -9,6 +9,7 @@ type MockServiceStorage struct {
 	UploadFunc   func(ctx context.Context, filename string, fileSize int64, contentType string, file io.Reader) error
 	DownloadFunc func(ctx context.Context, filename string) (io.ReadCloser, error)
 	DeleteFunc   func(ctx context.Context, filename string) error
+	HealthFunc   func(ctx context.Context) error
 }
 
 func (s *MockServiceStorage) Upload(ctx context.Context, filename string, fileSize int64, contentType string, file io.Reader) error {
@@ -30,6 +31,14 @@ func (s *MockServiceStorage) Download(ctx context.Context, filename string) (io.
 func (s *MockServiceStorage) Delete(ctx context.Context, filename string) error {
 	if s.DeleteFunc != nil {
 		return s.DeleteFunc(ctx, filename)
+	}
+
+	return nil
+}
+
+func (s *MockServiceStorage) Health(ctx context.Context) error {
+	if s.HealthFunc != nil {
+		return s.HealthFunc(ctx)
 	}
 
 	return nil

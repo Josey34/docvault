@@ -258,3 +258,52 @@ func TestDownloadHandlerSuccess(t *testing.T) {
 		t.Errorf("GET() body = %s, want %s", string(bodyBytes), TestPDFContent)
 	}
 }
+
+func TestHealthHandlerSuccess(t *testing.T) {
+	mockRepo, mockStorage, mockQueue := createDefaultMocks(nil, nil, nil)
+
+	mockRepo.PingFunc = func(ctx context.Context) error {
+		return nil
+	}
+	mockStorage.HealthFunc = func(ctx context.Context) error {
+		return nil
+	}
+	mockQueue.HealthFunc = func(ctx context.Context) error {
+		return nil
+	}
+
+	uc := usecase.NewDocumentUsecase(mockRepo, mockStorage, mockQueue)
+	h := handler.NewDocumentHandler(uc)
+
+	router := gin.New()
+	router.GET("/health", h.Health)
+
+	req := httptest.NewRequest("GET", "/health", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("Health() status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var response map[string]interface{}
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
+
+	if response["status"] != "healthy" {
+		t.Errorf("Health() status = %v, want 'healthy'", response["status"])
+	}
+
+	services := response["services"].(map[string]interface{})
+	if services["database"] != "ok" {
+		t.Errorf("Health() database = %v, want 'ok'", services["database"])
+	}
+	if services["storage"] != "ok" {
+		t.Errorf("Health() storage = %v, want 'ok'", services["storage"])
+	}
+	if services["queue"] != "ok" {
+		t.Errorf("Health() queue = %v, want 'ok'", services["queue"])
+	}
+}

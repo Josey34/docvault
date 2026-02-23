@@ -12,6 +12,7 @@ type MockDocumentRepository struct {
 	FindAllFunc     func(ctx context.Context) ([]*entity.Document, error)
 	DeleteFunc      func(ctx context.Context, id string) error
 	FindExpiredFunc func(ctx context.Context, now time.Time) ([]*entity.Document, error)
+	PingFunc        func(ctx context.Context) error
 }
 
 func (m *MockDocumentRepository) Save(ctx context.Context, doc *entity.Document) error {
@@ -52,4 +53,12 @@ func (m *MockDocumentRepository) FindExpired(ctx context.Context, now time.Time)
 	}
 
 	return nil, nil
+}
+
+func (m *MockDocumentRepository) Ping(ctx context.Context) error {
+	if m.PingFunc != nil {
+		return m.PingFunc(ctx)
+	}
+
+	return nil
 }

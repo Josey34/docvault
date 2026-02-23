@@ -37,15 +37,7 @@ func main() {
 	r.Use(middleware.LoggingMiddleware())
 	r.Use(middleware.RecoveryMiddleware())
 
-	r.GET("/health", func(c *gin.Context) {
-		if err := f.DB.Ping(); err != nil {
-			c.JSON(500, gin.H{"error": "database unavailable"})
-			return
-		}
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
-	})
+	r.GET("/health", f.DocumentHandler.Health)
 
 	r.POST("/api/documents/upload", f.DocumentHandler.Upload)
 	r.GET("/api/documents", f.DocumentHandler.List)

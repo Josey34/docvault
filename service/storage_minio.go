@@ -47,3 +47,15 @@ func (m *MinIOStorage) Delete(ctx context.Context, filename string) error {
 
 	return nil
 }
+
+func (m *MinIOStorage) Health(ctx context.Context) error {
+	exists, err := m.client.BucketExists(ctx, m.bucketName)
+	if err != nil {
+		return fmt.Errorf("Error checking bucket existence %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("Bucket does not exists")
+	}
+
+	return nil
+}

@@ -12,4 +12,6 @@ type DocumentRepository interface {
 	FindAll(ctx context.Context) ([]*entity.Document, error)
 	Delete(ctx context.Context, id string) error
 	FindExpired(ctx context.Context, now time.Time) ([]*entity.Document, error)
+
+	Ping(ctx context.Context) error
 }

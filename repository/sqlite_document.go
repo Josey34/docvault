@@ -99,3 +99,7 @@ func (r *SQLiteDocumentRepository) FindExpired(ctx context.Context, now time.Tim
 
 	return documents, nil
 }
+
+func (r *SQLiteDocumentRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}

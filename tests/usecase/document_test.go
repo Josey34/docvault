@@ -1,4 +1,4 @@
-package usecase_test // Note: _test suffix for test package
+package usecase_test
 
 import (
 	"bytes"
@@ -102,5 +102,34 @@ func TestDeleteSuccess(t *testing.T) {
 
 	if err := uc.Delete(context.Background(), "1"); err != nil {
 		t.Errorf("Delete() error %v, want nil", err)
+	}
+}
+
+func TestHealthAllServicesHealthy(t *testing.T) {
+	mockRepo := &mock_test.MockDocumentRepository{}
+	mockStorage := &mock_test.MockServiceStorage{}
+	mockQueue := &mock_test.MockServiceQueue{}
+
+	mockRepo.PingFunc = func(ctx context.Context) error {
+		return nil
+	}
+	mockStorage.HealthFunc = func(ctx context.Context) error {
+		return nil
+	}
+	mockQueue.HealthFunc = func(ctx context.Context) error {
+		return nil
+	}
+
+	uc := usecase.NewDocumentUsecase(mockRepo, mockStorage, mockQueue)
+	status := uc.Health(context.Background())
+
+	if status["database"] != "ok" {
+		t.Errorf("database status = %s, want ok", status["database"])
+	}
+	if status["storage"] != "ok" {
+		t.Errorf("storage status = %s, want ok", status["storage"])
+	}
+	if status["queue"] != "ok" {
+		t.Errorf("queue status = %s, want ok", status["queue"])
 	}
 }

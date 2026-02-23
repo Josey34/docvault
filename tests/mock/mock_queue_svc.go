@@ -6,6 +6,7 @@ type MockServiceQueue struct {
 	PublishFunc       func(ctx context.Context, message string) error
 	ConsumeFunc       func(ctx context.Context) (<-chan string, error)
 	DeleteMessageFunc func(ctx context.Context, receiptHandle string) error
+	HealthFunc        func(ctx context.Context) error
 }
 
 func (q *MockServiceQueue) Publish(ctx context.Context, message string) error {
@@ -27,6 +28,14 @@ func (q *MockServiceQueue) Consume(ctx context.Context) (<-chan string, error) {
 func (q *MockServiceQueue) DeleteMessage(ctx context.Context, receiptHandle string) error {
 	if q.DeleteMessageFunc != nil {
 		return q.DeleteMessageFunc(ctx, receiptHandle)
+	}
+
+	return nil
+}
+
+func (q *MockServiceQueue) Health(ctx context.Context) error {
+	if q.HealthFunc != nil {
+		return q.HealthFunc(ctx)
 	}
 
 	return nil
