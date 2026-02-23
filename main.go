@@ -35,6 +35,7 @@ func main() {
 	r := gin.Default()
 
 	r.Use(middleware.LoggingMiddleware())
+	r.Use(middleware.RecoveryMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		if err := f.DB.Ping(); err != nil {
