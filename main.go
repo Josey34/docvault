@@ -5,12 +5,26 @@ import (
 	"docvault/config"
 	"docvault/factory"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	cfg := config.Load()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
 
 	f, err := factory.New(cfg)
 	if err != nil {
@@ -35,8 +49,33 @@ func main() {
 	r.GET("/api/documents/:id/download", f.DocumentHandler.Download)
 	r.DELETE("/api/documents/:id", f.DocumentHandler.Delete)
 
-	go f.NotificationWorker.Start(context.Background())
-	go f.SchedulerWorker.Start(context.Background())
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: r,
+	}
 
-	r.Run(":" + cfg.Port)
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Println("Server error:", err)
+		}
+		wg.Done()
+	}()
+	wg.Add(1)
+
+	go func() {
+		f.NotificationWorker.Start(ctx)
+		wg.Done()
+	}()
+	go func() {
+		f.SchedulerWorker.Start(ctx)
+		wg.Done()
+	}()
+
+	<-quit
+
+	log.Println("Shutting down...")
+	cancel()
+	server.Shutdown(context.Background())
+	wg.Wait()
+	log.Println("Server stopped gracefully")
 }

@@ -47,6 +47,7 @@ func (s *SQSQueue) Consume(ctx context.Context) (<-chan string, error) {
 				})
 				if err != nil {
 					fmt.Printf("Error receiving message from SQS: %v\n", err)
+					continue
 				}
 				for _, msg := range output.Messages {
 					messageChan <- *msg.Body
