@@ -1,1 +1,164 @@
 package usecase
+
+import (
+	"context"
+	"docvault/entity"
+	"docvault/repository"
+	"docvault/service"
+	"encoding/json"
+	"fmt"
+	"io"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type DocumentUsecase struct {
+	repo    repository.DocumentRepository
+	storage service.StorageService
+	queue   service.QueueService
+}
+
+func NewDocumentUsecase(repo repository.DocumentRepository, storage service.StorageService, queue service.QueueService) *DocumentUsecase {
+	return &DocumentUsecase{repo: repo, storage: storage, queue: queue}
+}
+
+func (u *DocumentUsecase) Upload(ctx context.Context, filename string, fileSize int64, contentType string, file io.Reader, expiresIn int) (*entity.Document, error) {
+	documentID := uuid.New().String()
+	now := time.Now()
+	expiresAt := now.Add(time.Duration(expiresIn) * time.Second)
+
+	if err := u.storage.Upload(ctx, filename, fileSize, contentType, file); err != nil {
+		return nil, fmt.Errorf("Failed to upload to storage %w", err)
+	}
+
+	document := &entity.Document{
+		ID:          documentID,
+		FileName:    filename,
+		FileSize:    fileSize,
+		ContentType: contentType,
+		CreatedAt:   time.Now(),
+		ExpiresAt:   &expiresAt,
+	}
+	if err := u.repo.Save(ctx, document); err != nil {
+		return nil, fmt.Errorf("Failed to save to repository documents %w", err)
+	}
+
+	event := map[string]interface{}{
+		"type":        "file.uploaded",
+		"document_id": documentID,
+		"filename":    filename,
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to marshal event %w", err)
+	}
+
+	if err := u.queue.Publish(ctx, string(eventJSON)); err != nil {
+		return nil, fmt.Errorf("Failed to publish to queue %w", err)
+	}
+
+	return document, nil
+}
+
+func (u *DocumentUsecase) List(ctx context.Context) ([]*entity.Document, error) {
+	doc, err := u.repo.FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to list items from documents %w", err)
+	}
+
+	return doc, nil
+}
+
+func (u *DocumentUsecase) GetMetadata(ctx context.Context, id string) (*entity.Document, error) {
+	doc, err := u.repo.FindById(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to find item id %w", err)
+	}
+
+	return doc, nil
+}
+
+func (u *DocumentUsecase) Download(ctx context.Context, filename string) (io.ReadCloser, error) {
+	object, err := u.storage.Download(ctx, filename)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to download from storage %w", err)
+	}
+
+	return object, nil
+}
+
+func (u *DocumentUsecase) Delete(ctx context.Context, id string) error {
+	doc, err := u.repo.FindById(ctx, id)
+	if err != nil {
+		return fmt.Errorf("Failed to find item id %w", err)
+	}
+
+	if err := u.storage.Delete(ctx, doc.FileName); err != nil {
+		return fmt.Errorf("Failed to delete from storage %w", err)
+	}
+
+	if err := u.repo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("Failed to delete from repo %w", err)
+	}
+
+	event := map[string]interface{}{
+		"type":        "file.deleted",
+		"document_id": id,
+		"filename":    doc.FileName,
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal event %w", err)
+	}
+
+	if err := u.queue.Publish(ctx, string(eventJSON)); err != nil {
+		return fmt.Errorf("Failed to publish delete event %w", err)
+	}
+
+	return nil
+}
+
+func (u *DocumentUsecase) DeleteExpiredDocuments(ctx context.Context) error {
+	now := time.Now()
+	expiredDocs, err := u.repo.FindExpired(ctx, now)
+	if err != nil {
+		return fmt.Errorf("Failed to find expired documents %w", err)
+	}
+
+	for _, doc := range expiredDocs {
+		if err := u.Delete(ctx, doc.ID); err != nil {
+			fmt.Printf("Failed to delete expired document %s: %v\n", doc.ID, err)
+		}
+	}
+
+	return nil
+}
+
+func (u *DocumentUsecase) Health(ctx context.Context) map[string]string {
+	status := make(map[string]string)
+
+	if err := u.repo.Ping(ctx); err != nil {
+		status["database"] = "error: " + err.Error()
+	} else {
+		status["database"] = "ok"
+	}
+
+	if err := u.storage.Health(ctx); err != nil {
+		status["storage"] = "error: " + err.Error()
+	} else {
+		status["storage"] = "ok"
+	}
+
+	if err := u.queue.Health(ctx); err != nil {
+		status["queue"] = "error: " + err.Error()
+	} else {
+		status["queue"] = "ok"
+	}
+
+	return status
+}
